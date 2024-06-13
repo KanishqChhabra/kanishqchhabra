@@ -7,11 +7,11 @@ from plotly.subplots import make_subplots
 import warnings
 warnings.filterwarnings("ignore")
 
-stocks = ['GOOGL', 'AMZN', 'TSLA', 'MSFT' ]  # Assets to select yfinance format
+stocks = ['GOOGL', 'AMZN', 'TSLA', 'MSFT' ]  
 portfolio_value = 10**6                         # Initial Portfolio Value to be allocated in full
 weights = [0.30 , 0.15, 0.40, 0.075, 0.075]          # Weight Allocation per asset
 
-benchmark = '^GSPC'                    # ^GSPC is SP500 for Yfinance library
+benchmark = '^GSPC'                    
 
 start_date = '2015-01-01'              # Start date for asset data download
 live_date = '2020-01-01'               # Portfolio LIVE start date (for analytics)
@@ -42,18 +42,18 @@ shares_df
 
 # REBALANCING ENGINE (change between .year, .month, .day to execute the rebalancing)
 
-# set initial shares on the first day
+
 shares_df.loc[stock_data.index[0], :] = [np.floor((portfolio_value * w) / stock_data[s][0]) for s,w in zip(stocks, weights)]
 
-# initialize variables
+
 balance_year = stock_data.index[0].year
 signal = False
 count = 0    # for loop count purpose
 
-# Store previous values in a dictionary
+
 prev_values = {}
 
-# Calculate portfolio value for the first day
+
 portfolio_value = sum([shares_df.loc[stock_data.index[0], s + '_shares'] * stock_data.loc[stock_data.index[0], s] for s in stocks])
 
 for day in stock_data.index:
@@ -61,20 +61,19 @@ for day in stock_data.index:
     if day == stock_data.index[0]:
         shares_df.loc[day] = shares_df.loc[day] # First day
 
-        # Store initial values as previous values
+       
         for col in shares_df.columns:
             prev_values[col] = shares_df.loc[day, col]
 
 
     elif day.year != balance_year:
         signal = True
-        # calculate new shares based on the new portfolio value and weights
+        
         new_shares = [np.floor((portfolio_value * w) / stock_data[s][day]) for s,w in zip(stocks, weights)]
         shares_df.loc[day, :] = new_shares
         balance_year = day.year
         count += 1
-        # print(f'Rebalance: {day.date()}, count: {count}') # uncomment to debug days ;)
-        # Store new values as previous values
+       
         for col in shares_df.columns:
             prev_values[col] = shares_df.loc[day, col]
 
@@ -82,37 +81,37 @@ for day in stock_data.index:
 
         signal = False
 
-        # Use previous values if it is not a rebalancing date
+       
         shares_df.loc[day, :] = [prev_values[col] for col in shares_df.columns]
         
         # print(f'Not rebalance, regular day: {day.date()}') # uncomment to debug days ;)
 
 
 
-    # Calculate asset values and portfolio value for the current day
+    
     asset_values = [shares_df.loc[day, s + '_shares'] * stock_data.loc[day, s] for s in stocks]
     portfolio_value = sum(asset_values)
     
     stock_data.loc[day, 'Signal'] = signal
     stock_data.loc[day, 'Portfolio_Value'] = portfolio_value
     
-    # Add shares to stock data frame
+    
     for s in stocks:
         stock_data.loc[day, s + '_shares'] = shares_df.loc[day, s + '_shares']
         stock_data.loc[day, s + '_value'] = shares_df.loc[day, s + '_shares'] * stock_data.loc[day, s]
 
 
- # Calculate log returns for portfolio
+
 stock_data['Portfolio_Value_rets'] = np.log(stock_data['Portfolio_Value'] / stock_data['Portfolio_Value'].shift(1))
 
-# Calculate log returns for each stock
+
 for stock in stocks:
     stock_data[f'{stock}_rets'] = np.log(stock_data[stock] / stock_data[stock].shift(1))
 
 start_date_benchmark = stock_data.index[0]
 stock_data = stock_data.dropna()
 
-# Calculate daily weight per asset
+
 for s in stocks:
     stock_data[s + '_weight'] = stock_data[s + '_value'] / stock_data['Portfolio_Value']
 
@@ -120,7 +119,7 @@ stock_data.filter(regex='weight')
 
 fig = go.Figure()
 
-# Loop through each stock and add a trace for its shares
+
 for stock in stocks:
     fig.add_trace(go.Scatter(x=stock_data.index, y=shares_df[stock+'_shares'], mode='lines', name=stock+'_shares'))
 
@@ -134,7 +133,7 @@ fig.show()
 
 fig = go.Figure()
 
-# Loop through each stock and add a trace for its shares
+
 for stock in stocks:
     fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data[stock + '_weight'], mode='lines', name=stock + '_weight'))
 
@@ -149,10 +148,10 @@ fig.show()
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
-# Create subplot layout
+
 fig = make_subplots(rows=2, cols=2, subplot_titles=('Portfolio Returns', 'Asset Returns', 'Shares Holding per Asset', 'Weights per Asset'))
 
-# Add traces to the subplots
+
 fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data['Portfolio_Value_rets'].cumsum(), name='Portfolio'), row=1, col=1)
 
 for s in stocks:
@@ -160,10 +159,10 @@ for s in stocks:
     fig.add_trace(go.Scatter(x=shares_df.index, y=shares_df[f'{s}_shares'], name=f'{s}'), row=2, col=1)
     fig.add_trace(go.Scatter(x=stock_data.index, y=stock_data[f'{s}_weight'], name=f'{s}'), row=2, col=2)
 
-# Update subplot layout
+
 fig.update_layout(height=800, width=1200, title='Strategy Overview', showlegend=False)
 
-# Display the plot
+
 fig.show()
 
 # Benchmark data download and returns
